@@ -13,7 +13,8 @@ logger = logging.getLogger('loja')
 
 if __name__ == '__main__':
 
-    file_sufix = datetime.now(timezone.utc).isoformat()
+    # Sem ":" no nome, que o Windows não aceita, para funcionar em pasta compartilhada
+    file_sufix = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
 
     json_path = '/home/doctor_dock/'
     logs_path = json_path
