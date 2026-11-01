@@ -86,7 +86,7 @@ docker exec docker-project-api ls /data/json
 
 ## Problemas conhecidos
 
-- A imagem e o agendamento pelo cron ainda não foram testados em um container.
+- O cron roda a cada minuto e não há limpeza: são cerca de 500 KB por execução, ou cerca de 740 MB por dia.
 - O `.devcontainer/devcontainer.json` citado no Dockerfile ainda não está no repositório.
 
 ## Licença

@@ -100,5 +100,9 @@ docker exec -u doctor_dock docker-project-api /app/run.sh
 
 ## Próximos passos
 
-- Testar a imagem e o agendamento pelo cron em um container. O código Python já foi testado fora do Docker, mas o Docker Desktop não iniciou.
-- Definir como as análises vão consumir os JSON do volume `/data`.
+- Reduzir a frequência do cron e criar limpeza dos arquivos: cada execução gera cerca de 500 KB, ou cerca de 740 MB por dia.
+- Montar o relatório no Power BI lendo os JSON de `C:\dados\docker_project\json`, a pasta do Windows ligada a `/data` com `-v`.
+
+## Teste em container (31/10/2026)
+
+Imagem de produção construída (1,63 GB) e executada com bind mount. O cron disparou nos minutos 01:42 e 01:43 UTC, os logs apareceram em `docker logs` e os JSON chegaram à pasta do Windows com 194 produtos e 208 carrinhos.
