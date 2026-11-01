@@ -20,6 +20,7 @@ if __name__ == '__main__':
 
     if os.environ.get('PRODUCTION'):
         logs_path = '/data/logs'
+        json_path = '/data/json'
 
     setup_logging(os.path.join(logs_path, "loja.log"))
 

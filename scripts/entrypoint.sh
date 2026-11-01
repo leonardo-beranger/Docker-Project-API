@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cron && tail -f --retry /data/logs/loj.log
+cron && tail -F /data/logs/loja.log

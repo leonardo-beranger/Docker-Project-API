@@ -8,9 +8,11 @@ logger = logging.getLogger('loja')
 def get_products():
 
     try:
-        result = requests.get(BASE_URL+"products")
+        # limit=0 faz a API devolver todos os itens, e não só os 30 do padrão
+        result = requests.get(BASE_URL+"products?limit=0")
     except requests.exceptions.RequestException as e:
         logger.error(f"Falhou em get products: {e}")
+        return None
 
     if result.status_code != 200:
         logger.error(f'Não baixou - status_code: {result.status_code}')
@@ -21,9 +23,11 @@ def get_products():
 def get_carts():
 
     try:
-        result = requests.get(BASE_URL+"carts")
+        # limit=0 faz a API devolver todos os itens, e não só os 30 do padrão
+        result = requests.get(BASE_URL+"carts?limit=0")
     except requests.exceptions.RequestException as e:
         logger.error(f"Falhou em get carts: {e}")
+        return None
 
     if result.status_code != 200:
         logger.error(f'Não baixou - status_code: {result.status_code}')
@@ -39,6 +43,7 @@ def can_write(file_path):
         return True
     except IOError as e:
         logger.error(f"Erro de entrada e saída: {e}")
+        return False
     except Exception as e:
         logger.error(f"Erro inesperado: {e}")
         return False

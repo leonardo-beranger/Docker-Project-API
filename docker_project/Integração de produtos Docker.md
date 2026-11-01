@@ -69,7 +69,7 @@ O estágio `development` não entra na imagem de produção, porque os dois herd
 1. O `ENTRYPOINT` executa `entrypoint.sh` como root, já que o daemon do cron precisa disso.
 2. O cron lê `/etc/cron.d/mycrontab` e dispara `run.sh` a cada minuto.
 3. `run.sh` define `PRODUCTION=1` e executa `app.py --produtos --carts` com o Python do venv.
-4. `app.py` baixa os produtos e os carrinhos e grava um JSON para cada um, com o horário UTC no nome.
+4. `app.py` baixa os produtos e os carrinhos e grava um JSON para cada um em `/data/json`, com o horário UTC no nome.
 5. Os logs vão para `/data/logs/loja.log`, com rotação em 10 KB e 3 backups.
 
 ## Comandos
@@ -88,19 +88,17 @@ docker exec -u doctor_dock docker-project-api /app/run.sh
 
 ## Problemas encontrados na revisão
 
-Foram encontrados lendo o código. O build e a execução ainda não foram testados, porque o Docker estava desligado.
-
-- [ ] `scripts/mycrontab`: o usuário está como `docker_doc`, mas o criado no Dockerfile é `doctor_dock`. O job agendado não roda.
-- [ ] `scripts/entrypoint.sh`: acompanha `/data/logs/loj.log`, mas o arquivo gerado é `loja.log`. Os logs não aparecem no `docker logs`.
-- [ ] `scripts/run.sh`: usa `mkdir ~p` em vez de `mkdir -p`. Cria uma pasta chamada `~p` e dá erro quando as pastas já existem.
-- [ ] `app/app.py`: em produção, os JSON vão para `/home/doctor_dock/`, e não para `/data/json`. Eles ficam fora do volume e se perdem junto com o container.
-- [ ] `app/cliente.py`: se a requisição falhar, `result` fica indefinido e o programa quebra com `UnboundLocalError`.
-- [ ] `app/cliente.py`: `can_write` retorna `None` em `IOError`, sem o `return False`.
-- [ ] `app/cliente.py`: a API do DummyJSON devolve 30 itens por padrão, então "get all" não traz tudo sem `limit` e `skip`.
-- [ ] `scripts/mycrontab`: em build feito no Windows, o arquivo pode chegar com modo `0755`, que o cron do Debian costuma rejeitar. Vale um `chmod 0644` no Dockerfile, a confirmar no teste.
+- [x] `scripts/mycrontab`: o usuário estava como `docker_doc`, mas o criado no Dockerfile é `doctor_dock`. O job agendado não rodava.
+- [x] `scripts/entrypoint.sh`: acompanhava `/data/logs/loj.log`, mas o arquivo gerado é `loja.log`. Agora usa `tail -F`, que continua acompanhando o log depois da rotação.
+- [x] `scripts/run.sh`: usava `mkdir ~p` em vez de `mkdir -p`.
+- [x] `app/app.py`: em produção, os JSON iam para `/home/doctor_dock/`. Agora vão para `/data/json`, dentro do volume.
+- [x] `app/cliente.py`: se a requisição falhava, `result` ficava indefinido e o programa quebrava com `UnboundLocalError`.
+- [x] `app/cliente.py`: `can_write` retornava `None` em `IOError`.
+- [x] `app/cliente.py`: a API devolve 30 itens por padrão. Agora usa `limit=0`, que traz todos os itens.
+- [x] `Dockerfile`: `chmod 0644` no `mycrontab`, porque o build no Windows pode copiar o arquivo com modo `0755`.
 - [ ] Criar a pasta `.devcontainer` com o `devcontainer.json`.
 
 ## Próximos passos
 
-- Corrigir a lista acima e testar o build de ponta a ponta.
+- Testar a imagem e o agendamento pelo cron em um container. O código Python já foi testado fora do Docker, mas o Docker Desktop não iniciou.
 - Definir como as análises vão consumir os JSON do volume `/data`.

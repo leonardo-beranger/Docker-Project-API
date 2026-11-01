@@ -4,8 +4,6 @@ Coleta dados de produtos e carrinhos da [API do DummyJSON](https://dummyjson.com
 
 O projeto consome uma API externa. Ele não expõe nenhum endpoint próprio.
 
-> **Status:** em desenvolvimento. O fluxo agendado ainda não funciona de ponta a ponta. Veja [Problemas conhecidos](#problemas-conhecidos).
-
 ## Tecnologias
 
 - Python 3.15 e `requests`
@@ -53,16 +51,22 @@ Inicie o container com um volume para `/data`:
 docker run -d --name docker-project-api -v docker_project_data:/data docker-project-api
 ```
 
-Dispare uma coleta manual:
+O cron executa a coleta a cada minuto. Para disparar uma coleta manual:
 
 ```bash
 docker exec -u doctor_dock docker-project-api /app/run.sh
 ```
 
-Consulte o log:
+Acompanhe o log:
 
 ```bash
-docker exec docker-project-api tail /data/logs/loja.log
+docker logs -f docker-project-api
+```
+
+Liste os arquivos gerados, que ficam em `/data/json`:
+
+```bash
+docker exec docker-project-api ls /data/json
 ```
 
 ### Argumentos do `app.py`
@@ -78,18 +82,11 @@ docker exec docker-project-api tail /data/logs/loja.log
 
 | Variável | Efeito |
 |---|---|
-| `PRODUCTION` | Quando definida, grava o log em `/data/logs` e usa o nível `INFO` em vez de `DEBUG`. O `run.sh` já a define. |
+| `PRODUCTION` | Quando definida, grava em `/data/logs` e `/data/json` e usa o nível `INFO` em vez de `DEBUG`. O `run.sh` já a define. |
 
 ## Problemas conhecidos
 
-O código ainda não foi testado de ponta a ponta. Estes pontos vieram da revisão de código:
-
-- `scripts/mycrontab` usa o usuário `docker_doc`, mas o usuário criado é `doctor_dock`, então o job agendado não roda.
-- `scripts/entrypoint.sh` acompanha `loj.log`, mas o arquivo gerado é `loja.log`, então os logs não aparecem em `docker logs`.
-- `scripts/run.sh` usa `mkdir ~p` em vez de `mkdir -p`.
-- Em produção, os JSON são gravados em `/home/doctor_dock/`, fora do volume `/data`, e se perdem junto com o container.
-- `app/cliente.py` quebra com `UnboundLocalError` quando a requisição falha.
-- A API devolve 30 itens por padrão, e a paginação ainda não foi implementada.
+- A imagem e o agendamento pelo cron ainda não foram testados em um container.
 - O `.devcontainer/devcontainer.json` citado no Dockerfile ainda não está no repositório.
 
 ## Licença

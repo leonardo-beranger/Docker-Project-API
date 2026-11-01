@@ -75,6 +75,9 @@ RUN ["chown", "-R", "doctor_dock:doctor_dock", "/data"]
 # Garante a permissão de execução, que pode se perder quando o build é feito no Windows.
 RUN ["chmod", "+x", "/app/entrypoint.sh"]
 RUN ["chmod", "+x", "/app/run.sh"]
+# O cron ignora arquivos de /etc/cron.d com permissão de execução ou de escrita
+# para o grupo, e o build no Windows costuma copiar os arquivos com modo 0755.
+RUN ["chmod", "0644", "/etc/cron.d/mycrontab"]
 
 # Muda para doctor_dock para que o venv e os pacotes pertençam a esse usuário.
 USER doctor_dock
