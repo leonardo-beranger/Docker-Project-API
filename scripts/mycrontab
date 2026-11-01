@@ -1,0 +1,2 @@
+#cuidado: arquivos crontab precisam de uma linha vazia no final
+* * * * * docker_doc /app/run.sh

@@ -1,0 +1,6 @@
+* text=auto
+
+# Executados dentro do container Linux: CRLF quebra o shell e o cron
+Dockerfile text eol=lf
+*.sh text eol=lf
+scripts/mycrontab text eol=lf

@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Ambiente e dados gerados
+.env
+*.log
+produtos_*.json
+carts_*.json
+
+# Obsidian: estado local da interface
+docker_project/.obsidian/workspace*.json

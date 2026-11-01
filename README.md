@@ -1,0 +1,97 @@
+# Docker Project API
+
+Coleta dados de produtos e carrinhos da [API do DummyJSON](https://dummyjson.com/) em um container Docker agendado com cron, e grava o resultado em JSON para uso em análises.
+
+O projeto consome uma API externa. Ele não expõe nenhum endpoint próprio.
+
+> **Status:** em desenvolvimento. O fluxo agendado ainda não funciona de ponta a ponta. Veja [Problemas conhecidos](#problemas-conhecidos).
+
+## Tecnologias
+
+- Python 3.15 e `requests`
+- Docker com build multi-stage
+- cron
+- VS Code com as extensões Python, Dev Containers e Container Tools
+
+## Estrutura
+
+```text
+.
+├── app/
+│   ├── app.py          # ponto de entrada; lê os argumentos e define os caminhos
+│   ├── cliente.py      # chama a API do DummyJSON e grava os JSON
+│   ├── help.py         # argumentos --produtos e --carts
+│   └── log.py          # log em stderr e em arquivo rotativo
+├── docker_project/     # cofre do Obsidian com as notas do projeto
+├── scripts/
+│   ├── entrypoint.sh   # inicia o cron e acompanha o log
+│   ├── mycrontab       # agendamento: a cada minuto
+│   └── run.sh          # cria as pastas e executa o app.py
+├── Dockerfile
+└── requirements.txt
+```
+
+## Imagem Docker
+
+| Estágio | Herda de | Para que serve |
+|---|---|---|
+| `build` | `python:3.15.0-bookworm` | Base comum: instala o cron e cria o usuário `doctor_dock` |
+| `development` | `build` | Cria o venv e o ativa no bash; o código vem do devcontainer |
+| `production` | `build` | Copia código e scripts, instala as dependências e define o `ENTRYPOINT` |
+
+## Como usar
+
+Gere a imagem de produção:
+
+```bash
+docker build --target production -t docker-project-api .
+```
+
+Inicie o container com um volume para `/data`:
+
+```bash
+docker run -d --name docker-project-api -v docker_project_data:/data docker-project-api
+```
+
+Dispare uma coleta manual:
+
+```bash
+docker exec -u doctor_dock docker-project-api /app/run.sh
+```
+
+Consulte o log:
+
+```bash
+docker exec docker-project-api tail /data/logs/loja.log
+```
+
+### Argumentos do `app.py`
+
+| Argumento | Efeito |
+|---|---|
+| `--produtos` | Baixa e salva os produtos |
+| `--carts` | Baixa e salva os carrinhos |
+
+É preciso informar pelo menos um. Cada arquivo recebe o horário UTC no nome, como `produtos_<timestamp>.json`.
+
+### Variáveis de ambiente
+
+| Variável | Efeito |
+|---|---|
+| `PRODUCTION` | Quando definida, grava o log em `/data/logs` e usa o nível `INFO` em vez de `DEBUG`. O `run.sh` já a define. |
+
+## Problemas conhecidos
+
+O código ainda não foi testado de ponta a ponta. Estes pontos vieram da revisão de código:
+
+- `scripts/mycrontab` usa o usuário `docker_doc`, mas o usuário criado é `doctor_dock`, então o job agendado não roda.
+- `scripts/entrypoint.sh` acompanha `loj.log`, mas o arquivo gerado é `loja.log`, então os logs não aparecem em `docker logs`.
+- `scripts/run.sh` usa `mkdir ~p` em vez de `mkdir -p`.
+- Em produção, os JSON são gravados em `/home/doctor_dock/`, fora do volume `/data`, e se perdem junto com o container.
+- `app/cliente.py` quebra com `UnboundLocalError` quando a requisição falha.
+- A API devolve 30 itens por padrão, e a paginação ainda não foi implementada.
+- O `.devcontainer/devcontainer.json` citado no Dockerfile ainda não está no repositório.
+
+## Licença
+
+Distribuído sob a licença MIT. Veja [LICENSE](LICENSE).
