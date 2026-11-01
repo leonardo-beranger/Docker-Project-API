@@ -46,8 +46,8 @@ docker_project/
 ├── docker_project/     # este cofre do Obsidian
 ├── scripts/
 │   ├── entrypoint.sh   # inicia o cron e acompanha o log
-│   ├── mycrontab       # agendamento: a cada minuto
-│   └── run.sh          # cria as pastas e executa o app.py
+│   ├── mycrontab       # agendamento: a cada hora
+│   └── run.sh          # cria as pastas, executa o app.py e limpa coletas antigas
 ├── Dockerfile
 └── requirements.txt
 ```
@@ -67,10 +67,11 @@ O estágio `development` não entra na imagem de produção, porque os dois herd
 ## Fluxo em produção
 
 1. O `ENTRYPOINT` executa `entrypoint.sh` como root, já que o daemon do cron precisa disso.
-2. O cron lê `/etc/cron.d/mycrontab` e dispara `run.sh` a cada minuto.
+2. O cron lê `/etc/cron.d/mycrontab` e dispara `run.sh` a cada hora, no minuto 0.
 3. `run.sh` define `PRODUCTION=1` e executa `app.py --produtos --carts` com o Python do venv.
 4. `app.py` baixa os produtos e os carrinhos e grava um JSON para cada um em `/data/json`, com o horário UTC no nome.
 5. Os logs vão para `/data/logs/loja.log`, com rotação em 10 KB e 3 backups.
+6. `run.sh` mantém as 720 coletas mais recentes de cada tipo (30 dias) e apaga as demais. O volume fica limitado a cerca de 370 MB, e o limite por quantidade evita que uma API fora do ar apague o histórico.
 
 ## Comandos
 
@@ -96,13 +97,23 @@ docker exec -u doctor_dock docker-project-api /app/run.sh
 - [x] `app/cliente.py`: `can_write` retornava `None` em `IOError`.
 - [x] `app/cliente.py`: a API devolve 30 itens por padrão. Agora usa `limit=0`, que traz todos os itens.
 - [x] `Dockerfile`: `chmod 0644` no `mycrontab`, porque o build no Windows pode copiar o arquivo com modo `0755`.
+- [x] `scripts/mycrontab` e `scripts/run.sh`: o cron rodava a cada minuto, sem limpeza, e gerava cerca de 740 MB por dia. Agora roda a cada hora, com retenção de 720 coletas.
 - [ ] Criar a pasta `.devcontainer` com o `devcontainer.json`.
 
 ## Próximos passos
 
-- Reduzir a frequência do cron e criar limpeza dos arquivos: cada execução gera cerca de 500 KB, ou cerca de 740 MB por dia.
 - Montar o relatório no Power BI lendo os JSON de `C:\dados\docker_project\json`, a pasta do Windows ligada a `/data` com `-v`.
 
 ## Teste em container (31/10/2026)
 
 Imagem de produção construída (1,63 GB) e executada com bind mount. O cron disparou nos minutos 01:42 e 01:43 UTC, os logs apareceram em `docker logs` e os JSON chegaram à pasta do Windows com 194 produtos e 208 carrinhos.
+
+## Teste da retenção (01/11/2026)
+
+Imagem de teste executada em volume separado, sem usar a pasta do Power BI.
+
+- Com 725 coletas antigas de cada tipo mais uma nova, `run.sh` deixou 720 de cada tipo, removeu as mais antigas e não tocou em um arquivo de outro tipo.
+- Com a agenda trocada temporariamente para cada minuto, só no container de teste, o cron executou `run.sh` e manteve as 720 coletas. A execução no minuto 0 não foi observada.
+- Sem rede, a coleta falhou e os arquivos existentes continuaram no volume.
+
+**Limite para linha temporal:** os JSON coletados em 31/10 e 01/11, com cerca de 20 horas de diferença, têm o mesmo hash SHA-256. Enquanto a API devolver os mesmos dados, uma série temporal fica plana, mesmo com o histórico guardado.

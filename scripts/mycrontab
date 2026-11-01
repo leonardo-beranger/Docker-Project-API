@@ -1,2 +1,2 @@
 #cuidado: arquivos crontab precisam de uma linha vazia no final
-* * * * * doctor_dock /app/run.sh
+0 * * * * doctor_dock /app/run.sh

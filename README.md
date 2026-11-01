@@ -23,8 +23,8 @@ O projeto consome uma API externa. Ele não expõe nenhum endpoint próprio.
 ├── docker_project/     # cofre do Obsidian com as notas do projeto
 ├── scripts/
 │   ├── entrypoint.sh   # inicia o cron e acompanha o log
-│   ├── mycrontab       # agendamento: a cada minuto
-│   └── run.sh          # cria as pastas e executa o app.py
+│   ├── mycrontab       # agendamento: a cada hora
+│   └── run.sh          # cria as pastas, executa o app.py e limpa coletas antigas
 ├── Dockerfile
 └── requirements.txt
 ```
@@ -51,7 +51,7 @@ Inicie o container com um volume para `/data`:
 docker run -d --name docker-project-api -v docker_project_data:/data docker-project-api
 ```
 
-O cron executa a coleta a cada minuto. Para disparar uma coleta manual:
+O cron executa a coleta a cada hora, no minuto 0. Para disparar uma coleta manual:
 
 ```bash
 docker exec -u doctor_dock docker-project-api /app/run.sh
@@ -78,6 +78,10 @@ docker exec docker-project-api ls /data/json
 
 É preciso informar pelo menos um. Cada arquivo recebe o horário UTC no nome, como `produtos_<timestamp>.json`.
 
+### Retenção
+
+Ao final de cada execução, o `run.sh` mantém as 720 coletas mais recentes de produtos e as 720 de carrinhos, o que equivale a 30 dias. Com cerca de 500 KB por coleta, o volume fica limitado a cerca de 370 MB. O limite é por quantidade, então uma API fora do ar não apaga o histórico.
+
 ### Variáveis de ambiente
 
 | Variável | Efeito |
@@ -86,7 +90,6 @@ docker exec docker-project-api ls /data/json
 
 ## Problemas conhecidos
 
-- O cron roda a cada minuto e não há limpeza: são cerca de 500 KB por execução, ou cerca de 740 MB por dia.
 - O `.devcontainer/devcontainer.json` citado no Dockerfile ainda não está no repositório.
 
 ## Licença
